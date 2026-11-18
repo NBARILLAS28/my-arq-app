@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14231E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="My ArQ">
+<title>My ArQ</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314231E'/%3E%3Cpath d='M14 46 L22 16 L48 12 L52 40 Z' fill='none' stroke='%23FF7A3D' stroke-width='4' stroke-linejoin='round'/%3E%3Ccircle cx='14' cy='46' r='5' fill='%23FF7A3D'/%3E%3Ccircle cx='22' cy='16' r='5' fill='%23FF7A3D'/%3E%3Ccircle cx='48' cy='12' r='5' fill='%23FF7A3D'/%3E%3Ccircle cx='52' cy='40' r='5' fill='%23FF7A3D'/%3E%3C/svg%3E">
+<style>
+/* Idea de diseño: herramienta de campo, alto contraste para uso al sol; naranja de cinta de topógrafo como único acento. */
+:root{
+  --bg:#F2F5F3; --surface:#FFFFFF; --ink:#14231E; --muted:#566761; --line:#D6DFDA; --chip:#E6ECE8;
+  --accent:#D4480F; --accent-ink:#FFFFFF; --teal:#0B6B58; --teal-soft:rgba(11,107,88,.14);
+  --good:#17803F; --warn:#9A5B07; --bad:#BF3328; --gps:#1D63DB;
+  --good-bg:#E2F3E9; --warn-bg:#FBEFD8; --bad-bg:#FAE3E0;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0E1613; --surface:#16231F; --ink:#E9F1ED; --muted:#98ABA3; --line:#26372F; --chip:#1F2F29;
+    --accent:#FF7A3D; --accent-ink:#1A0D05; --teal:#3FC3A5; --teal-soft:rgba(63,195,165,.18);
+    --good:#4CC57E; --warn:#E9A94B; --bad:#FF7B6E; --gps:#6EA2FF;
+    --good-bg:#14301F; --warn-bg:#3A2C12; --bad-bg:#3C1B18;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-text-size-adjust:100%}
+body{min-height:100%}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--gps);outline-offset:2px}
+.app{max-width:560px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 16px calc(36px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px}
+
+/* Encabezado */
+.top{display:flex;flex-direction:column;gap:10px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand svg{width:44px;height:44px;flex:none}
+.brand h1{margin:0;font-size:26px;line-height:1.1;letter-spacing:-.02em}
+.brand p{margin:2px 0 0;font-size:14px;color:var(--muted)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;border:0;border-radius:999px;background:var(--chip);font-size:14px;font-weight:600}
+.chip i{width:10px;height:10px;border-radius:50%;background:var(--muted);flex:none}
+.chip.good i{background:var(--good)} .chip.warn i{background:var(--warn)} .chip.bad i{background:var(--bad)}
+.chip.good{background:var(--good-bg)} .chip.warn{background:var(--warn-bg)} .chip.bad{background:var(--bad-bg)}
+
+/* Tarjetas */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.card h2{margin:0;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;gap:10px;align-items:center}
+.row.between{justify-content:space-between}
+.muted{color:var(--muted)} .small{font-size:13px}
+label.field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
+input[type=text]{width:100%;min-height:48px;padding:0 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;font-size:17px}
+
+/* Botones */
+.btn{width:100%;min-height:58px;border:0;border-radius:14px;padding:0 18px;background:var(--accent);color:var(--accent-ink);font-size:19px;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.2}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn.big{min-height:72px;font-size:21px}
+.btn.capturing{background:linear-gradient(90deg,var(--teal) var(--p,0%),var(--ink) var(--p,0%));color:#fff}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);font-size:16px;font-weight:600;min-height:48px}
+.btn.sm{min-height:48px;font-size:16px}
+.link{background:none;border:0;padding:8px 0;color:var(--gps);font-size:15px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.link.danger{color:var(--bad)}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.seg button{min-height:44px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);font-weight:600;font-size:15px}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* Antes de empezar */
+.checks{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.checks li{display:flex;gap:10px;font-size:15px;line-height:1.35}
+.checks li b{flex:none;width:24px;height:24px;border-radius:50%;background:var(--teal-soft);color:var(--teal);display:grid;place-items:center;font-size:13px}
+.alert{border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.4;background:var(--bad-bg);color:var(--ink);border-left:5px solid var(--bad)}
+.alert.warn{background:var(--warn-bg);border-left-color:var(--warn)}
+.alert.hidden,.hidden{display:none}
+
+/* Lectura GPS */
+.acc{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.acc .num{font-size:52px;font-weight:800;line-height:.95;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.acc .num small{font-size:20px;font-weight:700;margin-left:2px}
+.pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:700}
+.pill.good{background:var(--good-bg);color:var(--good)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)} .pill.off{background:var(--chip);color:var(--muted)}
+.meter{height:10px;border-radius:999px;background:var(--chip);overflow:hidden}
+.meter span{display:block;height:100%;width:0;border-radius:999px;background:var(--muted);transition:width .3s}
+.meter span.good{background:var(--good)} .meter span.warn{background:var(--warn)} .meter span.bad{background:var(--bad)}
+.coords{font-family:var(--mono);font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums}
+.dists{display:flex;gap:16px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.dists b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* Mapa */
+.mapwrap{border-radius:12px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+.mapwrap svg{display:block;width:100%;height:auto}
+.mapwrap .poly{fill:var(--teal-soft);stroke:var(--teal);stroke-width:2.5;stroke-linejoin:round}
+.mapwrap .poly.bad{fill:var(--bad-bg);stroke:var(--bad)}
+.mapwrap .pt{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.mapwrap .ptn{fill:var(--accent-ink);font:700 11px var(--font);text-anchor:middle}
+.mapwrap .len{fill:var(--ink);font:600 11px var(--font);text-anchor:middle;paint-order:stroke;stroke:var(--bg);stroke-width:4;stroke-linejoin:round}
+.mapwrap .me{fill:var(--gps);stroke:#fff;stroke-width:2.5}
+.mapwrap .mering{fill:rgba(29,99,219,.15);stroke:var(--gps);stroke-width:1}
+.mapwrap .sc{stroke:var(--ink);stroke-width:2;fill:none}
+.mapwrap .sct{fill:var(--ink);font:600 11px var(--font)}
+.mapwrap .nth{fill:var(--ink)}
+.mapwrap .hint{fill:var(--muted);font:500 14px var(--font);text-anchor:middle}
+
+/* Resultados */
+.area{display:flex;flex-direction:column;gap:2px}
+.area .big{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.area .big small{font-size:19px;font-weight:700;margin-left:4px;color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.tile{background:var(--bg);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.tile span{font-size:12px;color:var(--muted);font-weight:600}
+.tile b{font-size:19px;font-variant-numeric:tabular-nums}
+
+/* Lista de puntos */
+.pts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.pts li{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg);border-radius:12px}
+.pts .n{flex:none;width:34px;height:34px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800;font-size:14px}
+.pts .c{flex:1;min-width:0;font-family:var(--mono);font-size:13px;line-height:1.45;font-variant-numeric:tabular-nums}
+.pts .c em{font-style:normal;font-family:var(--font);font-weight:700}
+.pts .c em.good{color:var(--good)} .pts .c em.warn{color:var(--warn)} .pts .c em.bad{color:var(--bad)}
+.pts button{flex:none;width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--muted);font-size:20px}
+.empty{padding:6px 0;color:var(--muted);font-size:15px;line-height:1.45}
+
+/* Exportar */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* Guía */
+details{border-top:1px solid var(--line);padding-top:4px}
+details:first-of-type{border-top:0;padding-top:0}
+summary{min-height:48px;display:flex;align-items:center;font-weight:700;font-size:16px;cursor:pointer;list-style-position:inside}
+details ul,details ol{margin:0 0 8px;padding-left:22px;display:flex;flex-direction:column;gap:7px;font-size:15px;line-height:1.45}
+.foot{font-size:12.5px;line-height:1.5;color:var(--muted);padding:0 4px}
+
+/* Aviso emergente y diálogo */
+.toast{position:fixed;left:16px;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));max-width:520px;margin:0 auto;background:var(--ink);color:var(--bg);padding:14px 16px;border-radius:14px;font-size:15px;font-weight:600;line-height:1.35;box-shadow:0 8px 28px rgba(0,0,0,.28);opacity:0;transform:translateY(12px);pointer-events:none;transition:.2s;z-index:20}
+.toast.show{opacity:1;transform:none}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:20px;z-index:30}
+.modal.show{display:flex}
+.modal .box{background:var(--surface);border-radius:18px;padding:20px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:14px}
+.modal h3{margin:0;font-size:19px} .modal p{margin:0;font-size:15px;line-height:1.45;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#14231E"/><path d="M14 46 L22 16 L48 12 L52 40 Z" fill="none" stroke="#FF7A3D" stroke-width="4" stroke-linejoin="round"/><circle cx="14" cy="46" r="5" fill="#FF7A3D"/><circle cx="22" cy="16" r="5" fill="#FF7A3D"/><circle cx="48" cy="12" r="5" fill="#FF7A3D"/><circle cx="52" cy="40" r="5" fill="#FF7A3D"/></svg>
+      <div><h1>My ArQ</h1><p>Levantamiento de terreno con GPS</p></div>
+    </div>
+    <div class="chips">
+      <button class="chip" id="chipGps" type="button"><i></i><span>GPS apagado</span></button>
+      <button class="chip" id="chipWake" type="button"><i></i><span>Pantalla normal</span></button>
+    </div>
+  </header>
+
+  <section class="card">
+    <label class="field" for="nameInput">Nombre del terreno
+      <input id="nameInput" type="text" placeholder="Ej. Terreno Eddy Argueta" autocomplete="off" autocapitalize="words" maxlength="80">
+    </label>
+  </section>
+
+  <!-- Paso 1: activar -->
+  <section class="card" id="startCard">
+    <h2>Antes de empezar</h2>
+    <ul class="checks">
+      <li><b>1</b><span>Ubicación precisa activada para Safari (Ajustes › Privacidad y seguridad › Localización).</span></li>
+      <li><b>2</b><span>Cielo despejado, lejos de muros altos y árboles densos.</span></li>
+      <li><b>3</b><span>Batería con más de 30 % y Safari abierto todo el recorrido.</span></li>
+    </ul>
+    <div class="alert hidden" id="startErr" role="alert"></div>
+    <button class="btn big" id="startBtn" type="button">Activar GPS y mantener pantalla encendida</button>
+  </section>
+
+  <!-- Paso 2: medir -->
+  <section class="card hidden" id="liveCard">
+    <h2>Señal GPS</h2>
+    <div class="acc">
+      <div class="num" id="accNum">--<small>m</small></div>
+      <span class="pill off" id="accPill">Buscando…</span>
+    </div>
+    <div class="meter" aria-hidden="true"><span id="accBar"></span></div>
+    <div class="coords" id="coordsLive">Esperando posición…</div>
+    <div class="dists" id="dists"></div>
+    <div class="alert warn hidden" id="liveAlert" role="status"></div>
+    <button class="btn big" id="capBtn" type="button" disabled>Esperando señal GPS…</button>
+    <div class="seg" id="secSeg" role="group" aria-label="Segundos de promedio por punto">
+      <button type="button" data-s="10" aria-pressed="false">10 s</button>
+      <button type="button" data-s="20" aria-pressed="true">20 s</button>
+      <button type="button" data-s="30" aria-pressed="false">30 s</button>
+      <button type="button" data-s="60" aria-pressed="false">60 s</button>
+    </div>
+    <p class="small muted" id="capHint" style="margin:0"></p>
+    <div class="row between">
+      <button class="link hidden" id="capCancel" type="button">Cancelar punto</button>
+      <button class="link" id="stopBtn" type="button" style="margin-left:auto">Detener GPS</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Mapa del terreno</h2>
+    <div class="alert warn hidden" id="exBanner">Estás viendo un terreno de ejemplo. Al guardar tu primer punto real se borra solo.</div>
+    <div class="mapwrap" id="mapWrap"></div>
+    <div class="alert hidden" id="crossAlert" role="status">Los lados se cruzan. Revisa que los puntos estén en el orden en que caminaste el perímetro; si no, borra el punto equivocado y vuelve a medirlo.</div>
+  </section>
+
+  <section class="card">
+    <h2>Medidas</h2>
+    <div id="resBody"></div>
+  </section>
+
+  <section class="card">
+    <div class="row between"><h2>Puntos guardados</h2><span class="small muted" id="ptCount"></span></div>
+    <ol class="pts" id="ptList"></ol>
+    <div id="ptEmpty" class="empty"></div>
+    <div class="row between">
+      <button class="link" id="undoBtn" type="button">Quitar último punto</button>
+      <button class="link danger" id="clearBtn" type="button">Borrar todo</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Guardar y compartir</h2>
+    <button class="btn sm" id="shareBtn" type="button">Compartir resumen y archivo</button>
+    <div class="grid2">
+      <button class="btn ghost" id="kmlBtn" type="button">Descargar KML</button>
+      <button class="btn ghost" id="csvBtn" type="button">Descargar CSV</button>
+    </div>
+    <button class="btn ghost" id="copyBtn" type="button">Copiar coordenadas</button>
+    <p class="small muted" style="margin:0">El KML se abre en Google Earth. El CSV trae también las coordenadas en UTM y GTM.</p>
+  </section>
+
+  <section class="card">
+    <h2>Guía de campo</h2>
+    <details open>
+      <summary>Cómo medir bien</summary>
+      <ol>
+        <li>Toca <b>Activar GPS</b> y espera a que la precisión baje de ±10 m (ideal ±5 m o menos).</li>
+        <li>Párate exactamente en una esquina del terreno, con el teléfono en la mano, quieto.</li>
+        <li>Toca <b>Guardar punto</b> y no te muevas hasta que termine. Usa 20 a 30 s por punto.</li>
+        <li>Camina el perímetro siempre en el mismo sentido y guarda cada esquina en orden.</li>
+        <li>Si el lindero tiene curvas o quiebres, guarda un punto extra en cada uno.</li>
+        <li>Al terminar revisa el mapa: el dibujo debe parecerse al terreno y sin lados cruzados.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>Pantalla encendida y batería</summary>
+      <ul>
+        <li>Mantén Safari abierto y la pantalla encendida. Si el iPhone se bloquea o cambias de app, el GPS se pausa y se pierden lecturas.</li>
+        <li>My ArQ pide a Safari que no apague la pantalla. Como respaldo, ve a Ajustes › Pantalla y brillo › Bloqueo automático y elige <b>Nunca</b> mientras mides.</li>
+        <li>Desactiva el Modo de bajo consumo: puede reducir la frecuencia del GPS.</li>
+        <li>Al terminar, regresa el Bloqueo automático a su valor normal.</li>
+      </ul>
+    </details>
+    <details>
+      <summary>Si el GPS no arranca</summary>
+      <ul>
+        <li>Ajustes › Privacidad y seguridad › Localización: actívala, entra a Safari y elige <b>Mientras se usa</b> con <b>Ubicación precisa</b> activada.</li>
+        <li>Abre My ArQ en Safari desde su propio enlace, no dentro de otra app ni de una vista previa.</li>
+        <li>Si dice «Sin señal», sal a cielo abierto y espera 30 s.</li>
+        <li>Abre la página una vez con internet y no la recargues en el campo. El GPS funciona sin datos móviles.</li>
+      </ul>
+    </details>
+    <details>
+      <summary>Qué tan exacto es</summary>
+      <ul>
+        <li>El GPS de un celular suele errar entre 3 y 10 m por punto. Promediar 20 a 30 s mejora el resultado.</li>
+        <li>En terrenos pequeños el error pesa más. El «margen de referencia» de Medidas indica el peor caso.</li>
+        <li>Sirve para estimar área, ubicar linderos y hacer un croquis. Para escrituras, venta formal o trámites necesitas un levantamiento topográfico con equipo de precisión.</li>
+      </ul>
+    </details>
+  </section>
+
+  <p class="foot">Los datos se guardan solo en este teléfono. Exporta tu levantamiento antes de borrar el historial de Safari. Varas: 1 vara = 0.8359 m. Cuerda calculada de 25×25 varas; en algunas zonas la cuerda mide distinto.</p>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="box">
+    <h3 id="mTitle">¿Borrar todos los puntos?</h3>
+    <p id="mText">Se eliminan los puntos de este terreno. Esta acción no se puede deshacer.</p>
+    <button class="btn sm" id="mYes" type="button" style="background:var(--bad);color:#fff">Sí, borrar todo</button>
+    <button class="btn ghost" id="mNo" type="button">Cancelar</button>
+  </div>
+</div>
+
+<!-- Matemática pura (se prueba aparte) -->
+<script id="geo">
+const Geo=(()=>{
+  const D2R=Math.PI/180, VARA=0.8359;
+  function mPerDeg(lat){const p=lat*D2R;return{
+    lat:111132.92-559.82*Math.cos(2*p)+1.175*Math.cos(4*p)-0.0023*Math.cos(6*p),
+    lon:111412.84*Math.cos(p)-93.5*Math.cos(3*p)+0.118*Math.cos(5*p)};}
+  function localXY(points,origin){
+    const n=points.length;
+    const lat0=origin?origin.lat:points.reduce((s,p)=>s+p.lat,0)/n;
+    const lon0=origin?origin.lon:points.reduce((s,p)=>s+p.lon,0)/n;
+    const m=mPerDeg(lat0);
+    return{lat0,lon0,m,xy:points.map(p=>({x:(p.lon-lon0)*m.lon,y:(p.lat-lat0)*m.lat}))};
+  }
+  function area(xy){let s=0;const n=xy.length;for(let i=0;i<n;i++){const a=xy[i],b=xy[(i+1)%n];s+=a.x*b.y-b.x*a.y;}return Math.abs(s)/2;}
+  function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+  function perimeter(xy,closed){let s=0;const n=xy.length;const last=closed?n:n-1;for(let i=0;i<last;i++)s+=dist(xy[i],xy[(i+1)%n]);return s;}
+  function haversine(a,b){const R=6371008.8,dLat=(b.lat-a.lat)*D2R,dLon=(b.lon-a.lon)*D2R;
+    const h=Math.sin(dLat/2)**2+Math.cos(a.lat*D2R)*Math.cos(b.lat*D2R)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+  function segInt(a,b,c,d){const o=(p,q,r)=>(q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x);
+    return o(a,b,c)*o(a,b,d)<0&&o(c,d,a)*o(c,d,b)<0;}
+  function selfIntersects(xy){const n=xy.length;if(n<4)return false;
+    for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){
+      if(j===i+1||(i===0&&j===n-1))continue;
+      if(segInt(xy[i],xy[(i+1)%n],xy[j],xy[(j+1)%n]))return true;}
+    return false;}
+  function tm(lat,lon,lon0,k0,fe,fn){
+    const a=6378137,f=1/298.257223563,e2=f*(2-f),ep2=e2/(1-e2);
+    const p=lat*D2R,l=(lon-lon0)*D2R,s=Math.sin(p),c=Math.cos(p),t=Math.tan(p);
+    const N=a/Math.sqrt(1-e2*s*s),T=t*t,C=ep2*c*c,A=l*c;
+    const e4=e2*e2,e6=e4*e2;
+    const M=a*((1-e2/4-3*e4/64-5*e6/256)*p-(3*e2/8+3*e4/32+45*e6/1024)*Math.sin(2*p)+(15*e4/256+45*e6/1024)*Math.sin(4*p)-(35*e6/3072)*Math.sin(6*p));
+    const E=fe+k0*N*(A+(1-T+C)*A**3/6+(5-18*T+T*T+72*C-58*ep2)*A**5/120);
+    const Nn=fn+k0*(M+N*t*(A*A/2+(5-T+9*C+4*C*C)*A**4/24+(61-58*T+T*T+600*C-330*ep2)*A**6/720));
+    return{e:E,n:Nn};
+  }
+  function utm(lat,lon){const zone=Math.floor((lon+180)/6)+1;const r=tm(lat,lon,zone*6-183,0.9996,500000,lat<0?10000000:0);return{zone,hemi:lat<0?'S':'N',e:r.e,n:r.n};}
+  function gtm(lat,lon){return tm(lat,lon,-90.5,0.9998,500000,0);}
+  function units(m2){const v2=m2/(VARA*VARA);return{m2,v2,mz:v2/10000,cd:v2/625,ha:m2/10000};}
+  function averageSamples(s){
+    const sorted=[...s].sort((a,b)=>a.acc-b.acc);
+    const keep=sorted.slice(0,Math.max(1,Math.ceil(sorted.length*0.6)));
+    let sw=0,sl=0,sg=0;
+    for(const k of keep){const w=1/Math.pow(Math.max(k.acc,1),2);sw+=w;sl+=w*k.lat;sg+=w*k.lon;}
+    const lat=sl/sw,lon=sg/sw,m=mPerDeg(lat);
+    let ss=0,sa=0;
+    for(const k of keep){ss+=Math.pow((k.lat-lat)*m.lat,2)+Math.pow((k.lon-lon)*m.lon,2);sa+=k.acc;}
+    return{lat,lon,acc:sa/keep.length,spread:Math.sqrt(ss/keep.length),n:keep.length,total:s.length};
+  }
+  return{mPerDeg,localXY,area,dist,perimeter,haversine,selfIntersects,tm,utm,gtm,units,averageSamples,VARA};
+})();
+</script>
+
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const STORE='myarq.v1';
+const state={name:'',points:[],seconds:20,example:false};
+let watchId=null,tracking=false,cur=null,wake=null,capture=null,errMsg='',toastT=null;
+
+/* ---------- Guardado local ---------- */
+function load(){try{const s=JSON.parse(localStorage.getItem(STORE)||'null');if(s){
+  state.name=typeof s.name==='string'?s.name:'';
+  state.points=Array.isArray(s.points)?s.points.filter(p=>isFinite(p.lat)&&isFinite(p.lon)):[];
+  state.seconds=[10,20,30,60].includes(s.seconds)?s.seconds:20;
+  state.example=!!s.example;}}catch(e){}}
+function save(){try{localStorage.setItem(STORE,JSON.stringify(state));}catch(e){}}
+
+/* ---------- Utilidades ---------- */
+const nf=(v,d=1)=>v.toLocaleString('es-GT',{minimumFractionDigits:d,maximumFractionDigits:d});
+const quality=a=>a<=5?{k:'good',l:'Buena'}:a<=10?{k:'warn',l:'Regular'}:{k:'bad',l:'Baja'};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(msg,ms=3200){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),ms);}
+function geoOf(points){return Geo.localXY(points);}
+function stats(){
+  const n=state.points.length;if(n<2)return null;
+  const g=geoOf(state.points);
+  const per=Geo.perimeter(g.xy,n>=3);
+  const out={n,per,g,crossed:false};
+  if(n>=3){out.area=Geo.area(g.xy);out.crossed=Geo.selfIntersects(g.xy);out.u=Geo.units(out.area);
+    const acc=state.points.reduce((s,p)=>s+p.acc,0)/n;out.acc=acc;out.margin=out.area>0?Math.min(999,per*acc/out.area*100):999;}
+  return out;
+}
+
+/* ---------- Pantalla encendida ---------- */
+async function acquireWake(){
+  try{
+    if('wakeLock' in navigator){
+      if(wake&&!wake.released)return;
+      wake=await navigator.wakeLock.request('screen');
+      wake.addEventListener('release',renderChips);
+    }
+  }catch(e){wake=null;}
+  renderChips();
+}
+function releaseWake(){try{if(wake){wake.release();}}catch(e){}wake=null;renderChips();}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&tracking)acquireWake();});
+
+/* ---------- GPS ---------- */
+function startTracking(){
+  errMsg='';
+  if(!('geolocation' in navigator)){showStartErr('Este navegador no ofrece GPS. Abre My ArQ en Safari.');return;}
+  tracking=true;cur=null;
+  watchId=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,maximumAge:0,timeout:20000});
+  acquireWake();
+  renderAll();
+}
+function stopTracking(){
+  if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  tracking=false;cur=null;cancelCapture();releaseWake();renderAll();
+}
+function onPos(p){
+  const c=p.coords;
+  cur={lat:c.latitude,lon:c.longitude,acc:c.accuracy,recv:Date.now()};
+  if(capture)capture.samples.push({lat:cur.lat,lon:cur.lon,acc:cur.acc});
+  renderLive();renderMap();renderChips();
+}
+function onErr(e){
+  if(e.code===1){
+    stopTracking();
+    showStartErr('No hay permiso de ubicación. En el iPhone: Ajustes › Privacidad y seguridad › Localización › Safari › «Mientras se usa» con «Ubicación precisa». Después abre My ArQ en Safari desde su propio enlace y toca Activar otra vez.');
+  }else if(e.code===2){errMsg='Sin señal GPS. Sal a cielo abierto y espera unos segundos.';renderLive();}
+  else{errMsg='';renderLive();}
+}
+function showStartErr(t){const el=$('startErr');el.textContent=t;el.classList.remove('hidden');}
+setInterval(()=>{if(tracking){renderLive();renderChips();}},1000);
+
+/* ---------- Captura de un punto ---------- */
+function startCapture(){
+  if(!cur||capture)return;
+  if(state.example){state.points=[];state.example=false;}
+  // La última lectura (si es reciente) cuenta como primera muestra; iOS a veces entrega pocas lecturas con el teléfono quieto.
+  const seed=(Date.now()-cur.recv<10000)?[{lat:cur.lat,lon:cur.lon,acc:cur.acc}]:[];
+  capture={samples:seed,start:Date.now(),dur:state.seconds*1000,timer:null,poll:null};
+  capture.timer=setInterval(tickCapture,100);
+  const poll=()=>{if(!capture)return;try{navigator.geolocation.getCurrentPosition(p=>{if(capture)capture.samples.push({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy});},()=>{},{enableHighAccuracy:true,maximumAge:0,timeout:4000});}catch(e){}};
+  capture.poll=setInterval(poll,2000);
+  renderLive();
+}
+function tickCapture(){
+  if(!capture)return;
+  const el=Date.now()-capture.start;
+  if(el>=capture.dur){finishCapture();return;}
+  renderLive();
+}
+function cancelCapture(){if(capture){clearInterval(capture.timer);clearInterval(capture.poll);capture=null;}renderLive();}
+function finishCapture(){
+  const c=capture;clearInterval(c.timer);clearInterval(c.poll);capture=null;
+  if(!c.samples.length){toast('No llegaron lecturas GPS. Intenta de nuevo con cielo abierto.');renderAll();return;}
+  const r=Geo.averageSamples(c.samples);
+  state.points.push({lat:r.lat,lon:r.lon,acc:r.acc,spread:r.spread,n:r.n,t:new Date().toISOString()});
+  save();renderAll();
+  const k=state.points.length;
+  toast(r.acc>15?`P${k} guardado con precisión baja (±${Math.round(r.acc)} m). Conviene repetirlo.`:`P${k} guardado (±${Math.round(r.acc)} m, ${r.total} lecturas).`);
+}
+
+/* ---------- Exportación ---------- */
+function slug(){return (state.name||'terreno').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'terreno';}
+function fileBase(){return 'myarq-'+slug()+'-'+new Date().toISOString().slice(0,10);}
+function summaryText(){
+  const s=stats();const nm=state.name||'Terreno';let t=`${nm} (My ArQ)\n`;
+  if(s&&s.area){t+=`Área: ${nf(s.u.m2,0)} m² · ${nf(s.u.v2,0)} varas² · ${nf(s.u.mz,2)} manzanas\nPerímetro: ${nf(s.per,1)} m\n`;}
+  else if(s){t+=`Distancia: ${nf(s.per,1)} m\n`;}
+  t+='Puntos (lat, lon):\n'+state.points.map((p,i)=>`P${i+1}: ${p.lat.toFixed(6)}, ${p.lon.toFixed(6)} (±${Math.round(p.acc)} m)`).join('\n');
+  if(state.points.length){const g=geoOf(state.points);t+=`\nMapa: https://www.google.com/maps?q=${g.lat0.toFixed(6)},${g.lon0.toFixed(6)}`;}
+  return t;
+}
+function buildKml(){
+  const nm=esc(state.name||'Terreno My ArQ');const pts=state.points;const s=stats();
+  let desc='';if(s&&s.area)desc=`Área ${nf(s.u.m2,0)} m² (${nf(s.u.v2,0)} varas², ${nf(s.u.mz,2)} manzanas). Perímetro ${nf(s.per,1)} m.`;
+  let k=`<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${nm}</name>\n<Style id="lote"><LineStyle><color>ff1b57e4</color><width>3</width></LineStyle><PolyStyle><color>551b57e4</color></PolyStyle></Style>\n`;
+  if(pts.length>=3){const ring=[...pts,pts[0]].map(p=>`${p.lon.toFixed(7)},${p.lat.toFixed(7)},0`).join(' ');
+    k+=`<Placemark><name>${nm}</name><description>${esc(desc)}</description><styleUrl>#lote</styleUrl><Polygon><tessellate>1</tessellate><outerBoundaryIs><LinearRing><coordinates>${ring}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>\n`;}
+  pts.forEach((p,i)=>{k+=`<Placemark><name>P${i+1}</name><description>Precisión ±${Math.round(p.acc)} m</description><Point><coordinates>${p.lon.toFixed(7)},${p.lat.toFixed(7)},0</coordinates></Point></Placemark>\n`;});
+  return k+'</Document></kml>';
+}
+function buildCsv(){
+  const rows=[['punto','latitud','longitud','precision_m','dispersion_m','lecturas','hora_utc','utm_zona','utm_este','utm_norte','gtm_este','gtm_norte']];
+  state.points.forEach((p,i)=>{const u=Geo.utm(p.lat,p.lon),g=Geo.gtm(p.lat,p.lon);
+    rows.push(['P'+(i+1),p.lat.toFixed(7),p.lon.toFixed(7),p.acc.toFixed(1),(p.spread||0).toFixed(1),p.n||'',p.t||'',u.zone+u.hemi,u.e.toFixed(2),u.n.toFixed(2),g.e.toFixed(2),g.n.toFixed(2)]);});
+  return '﻿'+rows.map(r=>r.join(',')).join('\r\n');
+}
+function download(name,mime,text){
+  const blob=new Blob([text],{type:mime});const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+}
+async function copyText(t){
+  try{await navigator.clipboard.writeText(t);return true;}catch(e){}
+  try{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');ta.remove();return ok;}catch(e){return false;}
+}
+async function doShare(){
+  if(!state.points.length){toast('Primero guarda al menos un punto.');return;}
+  const text=summaryText(),title=state.name||'Terreno My ArQ';
+  try{
+    const file=new File([buildKml()],fileBase()+'.kml',{type:'application/vnd.google-earth.kml+xml'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({title,text,files:[file]});return;}
+    if(navigator.share){await navigator.share({title,text});return;}
+  }catch(e){if(e&&e.name==='AbortError')return;try{if(navigator.share){await navigator.share({title,text});return;}}catch(e2){if(e2&&e2.name==='AbortError')return;}}
+  const ok=await copyText(text);toast(ok?'Resumen copiado. Pégalo en WhatsApp o correo.':'No se pudo compartir. Usa Descargar KML.');
+}
+
+/* ---------- Dibujo ---------- */
+function niceLen(maxM){const c=[1,2,5,10,20,50,100,200,500,1000,2000,5000];let b=c[0];for(const v of c)if(v<=maxM)b=v;return b;}
+function renderMap(){
+  const W=360,H=300,pad=36;const pts=state.points;let svg='';
+  const haveCur=tracking&&cur&&Date.now()-cur.recv<8000;
+  if(!pts.length&&!haveCur){
+    $('mapWrap').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Mapa vacío"><text class="hint" x="${W/2}" y="${H/2-6}">Aquí verás el dibujo de tu terreno</text><text class="hint" x="${W/2}" y="${H/2+16}">Guarda al menos 3 puntos</text></svg>`;return;}
+  const origin=pts.length?null:{lat:cur.lat,lon:cur.lon};
+  const base=pts.length?geoOf(pts):Geo.localXY([{lat:cur.lat,lon:cur.lon}],origin);
+  const xy=pts.length?base.xy:[];
+  let me=null;
+  if(haveCur){const x=(cur.lon-base.lon0)*base.m.lon,y=(cur.lat-base.lat0)*base.m.lat;
+    const far=pts.length>1&&Math.hypot(x,y)>400+Math.max(...xy.map(p=>Math.hypot(p.x,p.y)));
+    if(!far)me={x,y};}
+  const all=[...xy,...(me?[me]:[])];
+  let minX=Math.min(...all.map(p=>p.x)),maxX=Math.max(...all.map(p=>p.x)),minY=Math.min(...all.map(p=>p.y)),maxY=Math.max(...all.map(p=>p.y));
+  const minSpan=20;if(maxX-minX<minSpan){const c=(maxX+minX)/2;minX=c-minSpan/2;maxX=c+minSpan/2;}
+  if(maxY-minY<minSpan){const c=(maxY+minY)/2;minY=c-minSpan/2;maxY=c+minSpan/2;}
+  const sc=Math.min((W-2*pad)/(maxX-minX),(H-2*pad-14)/(maxY-minY));
+  const cx=W/2-((minX+maxX)/2)*sc,cy=(H-14)/2+((minY+maxY)/2)*sc;
+  const X=x=>cx+x*sc,Y=y=>cy-y*sc;
+  const crossed=pts.length>=4&&Geo.selfIntersects(xy);
+  if(pts.length>=3)svg+=`<polygon class="poly${crossed?' bad':''}" points="${xy.map(p=>X(p.x).toFixed(1)+','+Y(p.y).toFixed(1)).join(' ')}"/>`;
+  else if(pts.length===2)svg+=`<polyline class="poly" fill="none" points="${xy.map(p=>X(p.x).toFixed(1)+','+Y(p.y).toFixed(1)).join(' ')}"/>`;
+  if(pts.length>=2&&pts.length<=14){
+    const n=xy.length,last=pts.length>=3?n:n-1;
+    for(let i=0;i<last;i++){const a=xy[i],b=xy[(i+1)%n];const d=Geo.dist(a,b);
+      svg+=`<text class="len" x="${X((a.x+b.x)/2).toFixed(1)}" y="${(Y((a.y+b.y)/2)+4).toFixed(1)}">${nf(d,d<100?1:0)} m</text>`;}
+  }
+  if(me){const r=Math.min(Math.max(cur.acc*sc,6),70);svg+=`<circle class="mering" cx="${X(me.x).toFixed(1)}" cy="${Y(me.y).toFixed(1)}" r="${r.toFixed(1)}"/><circle class="me" cx="${X(me.x).toFixed(1)}" cy="${Y(me.y).toFixed(1)}" r="6.5"/>`;}
+  xy.forEach((p,i)=>{svg+=`<circle class="pt" cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="12"/><text class="ptn" x="${X(p.x).toFixed(1)}" y="${(Y(p.y)+4).toFixed(1)}">${i+1}</text>`;});
+  const L=niceLen(110/sc),len=L*sc;
+  svg+=`<g transform="translate(14,${H-14})"><path class="sc" d="M0 -5 V0 H${len.toFixed(1)} V-5"/><text class="sct" x="0" y="-9">${L>=1000?L/1000+' km':L+' m'}</text></g>`;
+  svg+=`<g transform="translate(${W-26},30)"><path class="nth" d="M0 -16 L7 6 L0 2 L-7 6 Z"/><text class="sct" x="-4" y="22">N</text></g>`;
+  if(!pts.length)svg+=`<text class="hint" x="${W/2}" y="${H-34}">Camina a la primera esquina y guarda el punto</text>`;
+  $('mapWrap').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Dibujo del terreno con ${pts.length} puntos">${svg}</svg>`;
+  $('crossAlert').classList.toggle('hidden',!crossed);
+}
+
+/* ---------- Pantalla ---------- */
+function renderChips(){
+  const g=$('chipGps'),w=$('chipWake');let k='',t='GPS apagado';
+  if(tracking){
+    if(!cur){k='warn';t='Buscando señal…';}
+    else if(Date.now()-cur.recv>6000){k='bad';t='Sin señal';}
+    else{const q=quality(cur.acc);k=q.k;t=`GPS ±${Math.round(cur.acc)} m`;}
+  }
+  g.className='chip '+k;g.lastElementChild.textContent=t;
+  let wk='',wt='Pantalla normal';
+  if(tracking){
+    if(wake&&!wake.released){wk='good';wt='Pantalla siempre activa';}
+    else if(!('wakeLock' in navigator)){wk='warn';wt='Pantalla: pon Nunca';}
+    else{wk='warn';wt='Pantalla puede apagarse';}
+  }
+  w.className='chip '+wk;w.lastElementChild.textContent=wt;
+}
+function renderLive(){
+  const live=$('liveCard');live.classList.toggle('hidden',!tracking);$('startCard').classList.toggle('hidden',tracking);
+  if(!tracking)return;
+  const fresh=cur&&Date.now()-cur.recv<6000;
+  const num=$('accNum'),pill=$('accPill'),bar=$('accBar');
+  if(fresh){
+    const q=quality(cur.acc);num.innerHTML=`±${Math.round(cur.acc)}<small>m</small>`;
+    pill.className='pill '+q.k;pill.textContent=q.l;
+    bar.className=q.k;bar.style.width=Math.max(6,Math.min(100,100-cur.acc*5))+'%';
+    $('coordsLive').innerHTML=`${cur.lat.toFixed(6)}°<br>${cur.lon.toFixed(6)}°`;
+  }else{
+    num.innerHTML='--<small>m</small>';pill.className='pill off';pill.textContent=cur?'Sin señal':'Buscando…';bar.style.width='0';
+    if(!cur)$('coordsLive').textContent='Esperando posición…';
+  }
+  const pts=state.points,d=[];
+  if(fresh&&pts.length){const l=pts[pts.length-1];d.push(`Al P${pts.length}: <b>${nf(Geo.haversine(cur,l),1)} m</b>`);
+    if(pts.length>1)d.push(`Al P1: <b>${nf(Geo.haversine(cur,pts[0]),1)} m</b>`);}
+  $('dists').innerHTML=d.join('');
+  const al=$('liveAlert');
+  if(errMsg){al.textContent=errMsg;al.classList.remove('hidden');}
+  else if(!('wakeLock' in navigator)){al.textContent='Este Safari no puede mantener la pantalla encendida solo. Ve a Ajustes › Pantalla y brillo › Bloqueo automático › Nunca mientras mides.';al.classList.remove('hidden');}
+  else al.classList.add('hidden');
+  const btn=$('capBtn'),k=pts.length+1,hint=$('capHint');
+  if(capture){
+    const el=Date.now()-capture.start,rem=Math.max(0,Math.ceil((capture.dur-el)/1000));
+    btn.className='btn big capturing';btn.style.setProperty('--p',Math.min(100,el/capture.dur*100)+'%');
+    btn.disabled=true;btn.innerHTML=`Midiendo P${k}… ${rem} s<br><span style="font-size:14px;font-weight:600;opacity:.85">No te muevas · ${capture.samples.length} lecturas</span>`;
+    hint.textContent='';$('capCancel').classList.remove('hidden');
+  }else{
+    btn.className='btn big';btn.style.removeProperty('--p');$('capCancel').classList.add('hidden');
+    if(!fresh){btn.disabled=true;btn.textContent='Esperando señal GPS…';hint.textContent='La primera señal puede tardar hasta 30 s. Mantén el teléfono al aire libre.';}
+    else{btn.disabled=false;btn.textContent=`Guardar punto P${k}`;
+      hint.textContent=cur.acc>10?'Precisión baja. Espera a que baje de ±10 m o sal a cielo más abierto.':`Párate en la esquina y toca. Se promedian ${state.seconds} s de lecturas.`;}
+  }
+  document.querySelectorAll('#secSeg button').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.s===state.seconds)));
+  $('secSeg').style.display=capture?'none':'';
+}
+function renderResults(){
+  const s=stats(),el=$('resBody');
+  if(!s){el.innerHTML=`<p class="empty" style="margin:0">Guarda al menos 3 puntos para calcular el área. Con 2 puntos verás la distancia entre ambos.</p>`;return;}
+  if(!s.area&&s.area!==0){el.innerHTML=`<div class="area"><div class="big">${nf(s.per,1)}<small>m</small></div><div class="muted small">Distancia entre P1 y P2</div></div>`;return;}
+  const u=s.u;let note='';
+  if(s.margin>10)note=`<div class="alert warn" style="margin-top:2px">Terreno pequeño para la precisión del GPS (±${Math.round(s.acc)} m por punto). Toma el área solo como referencia.</div>`;
+  el.innerHTML=`<div style="display:flex;flex-direction:column;gap:12px">
+    <div class="area"><div class="big">${nf(u.m2,0)}<small>m²</small></div><div class="muted small">Área · ${s.n} puntos</div></div>
+    <div class="tiles">
+      <div class="tile"><span>Varas cuadradas</span><b>${nf(u.v2,0)}</b></div>
+      <div class="tile"><span>Manzanas</span><b>${nf(u.mz,3)}</b></div>
+      <div class="tile"><span>Cuerdas (25 varas)</span><b>${nf(u.cd,2)}</b></div>
+      <div class="tile"><span>Hectáreas</span><b>${nf(u.ha,4)}</b></div>
+      <div class="tile"><span>Perímetro</span><b>${nf(s.per,1)} m</b></div>
+      <div class="tile"><span>Perímetro en varas</span><b>${nf(s.per/Geo.VARA,0)}</b></div>
+    </div>
+    <div class="small muted">Margen de referencia (peor caso): ±${s.margin>=100?'100+':nf(s.margin,0)} %</div>${note}</div>`;
+}
+function renderList(){
+  const pts=state.points,ol=$('ptList');
+  ol.innerHTML=pts.map((p,i)=>{const q=quality(p.acc);return `<li><div class="n">${i+1}</div><div class="c"><em class="${q.k}">±${Math.round(p.acc)} m</em><br>${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}</div><button type="button" data-del="${i}" aria-label="Borrar punto P${i+1}">✕</button></li>`;}).join('');
+  $('ptCount').textContent=pts.length?`${pts.length} ${pts.length===1?'punto':'puntos'}`:'';
+  const em=$('ptEmpty');
+  if(!pts.length){em.innerHTML=`Aún no hay puntos. Activa el GPS, ve a una esquina y toca Guardar punto.<br><br><button class="btn ghost" id="exBtn" type="button">Ver un terreno de ejemplo</button>`;
+    $('exBtn').onclick=loadExample;}
+  else em.innerHTML='';
+  $('undoBtn').classList.toggle('hidden',!pts.length);$('clearBtn').classList.toggle('hidden',!pts.length);
+  $('exBanner').classList.toggle('hidden',!state.example);
+  ['shareBtn','kmlBtn','csvBtn','copyBtn'].forEach(id=>$(id).disabled=!pts.length);
+}
+function renderAll(){renderChips();renderLive();renderMap();renderResults();renderList();}
+
+/* ---------- Acciones ---------- */
+function loadExample(){
+  // Lote de ejemplo de unos 25 x 40 m (no es una ubicación real)
+  const base={lat:14.6600,lon:-90.8200};const m=Geo.mPerDeg(base.lat);
+  const off=[[0,0],[32,3],[36,41],[4,38]];
+  state.points=off.map(([x,y])=>({lat:base.lat+y/m.lat,lon:base.lon+x/m.lon,acc:4,spread:1.5,n:12,t:new Date().toISOString()}));
+  state.example=true;if(!state.name)state.name='Terreno de ejemplo';$('nameInput').value=state.name;
+  save();renderAll();
+}
+function confirmBox(title,text,yes){
+  $('mTitle').textContent=title;$('mText').textContent=text;$('mYes').textContent=yes;$('modal').classList.add('show');
+  return new Promise(res=>{const done=v=>{$('modal').classList.remove('show');$('mYes').onclick=$('mNo').onclick=null;res(v);};$('mYes').onclick=()=>done(true);$('mNo').onclick=()=>done(false);$('mNo').focus();});
+}
+$('startBtn').onclick=()=>{$('startErr').classList.add('hidden');startTracking();};
+$('stopBtn').onclick=stopTracking;
+$('capBtn').onclick=startCapture;
+$('capCancel').onclick=()=>{cancelCapture();toast('Punto cancelado.');};
+$('secSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;state.seconds=+b.dataset.s;save();renderLive();};
+$('nameInput').oninput=e=>{state.name=e.target.value;save();};
+$('ptList').onclick=async e=>{const b=e.target.closest('[data-del]');if(!b)return;const i=+b.dataset.del;
+  if(await confirmBox(`¿Borrar el punto P${i+1}?`,'Los puntos siguientes se renumeran. Tendrás que medir de nuevo esta esquina.','Sí, borrar')){state.points.splice(i,1);if(!state.points.length)state.example=false;save();renderAll();}};
+$('undoBtn').onclick=()=>{if(!state.points.length)return;const k=state.points.length;state.points.pop();if(!state.points.length)state.example=false;save();renderAll();toast(`P${k} eliminado.`);};
+$('clearBtn').onclick=async()=>{if(await confirmBox('¿Borrar todos los puntos?','Se eliminan los puntos de este terreno. Esta acción no se puede deshacer.','Sí, borrar todo')){state.points=[];state.example=false;save();renderAll();}};
+$('shareBtn').onclick=doShare;
+$('kmlBtn').onclick=()=>{if(!state.points.length)return;download(fileBase()+'.kml','application/vnd.google-earth.kml+xml',buildKml());toast('KML descargado. Revisa la app Archivos.');};
+$('csvBtn').onclick=()=>{if(!state.points.length)return;download(fileBase()+'.csv','text/csv;charset=utf-8',buildCsv());toast('CSV descargado. Revisa la app Archivos.');};
+$('copyBtn').onclick=async()=>{if(!state.points.length)return;toast((await copyText(summaryText()))?'Coordenadas copiadas.':'No se pudo copiar.');};
+$('chipWake').onclick=()=>{
+  if(!tracking){toast('Al activar el GPS, My ArQ también mantiene la pantalla encendida.');return;}
+  if(wake&&!wake.released)toast('La pantalla no se apagará mientras My ArQ esté abierto.');
+  else{acquireWake();toast('Si la pantalla se apaga sola, usa Ajustes › Pantalla y brillo › Bloqueo automático › Nunca.',4500);}
+};
+$('chipGps').onclick=()=>toast(tracking?'Precisión buena: ±5 m o menos. Regular: hasta ±10 m.':'Toca «Activar GPS» para empezar.');
+
+load();$('nameInput').value=state.name;renderAll();
+})();
+</script>
+</body>
+</html>
