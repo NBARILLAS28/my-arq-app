@@ -145,6 +145,11 @@ details ul,details ol{margin:0 0 8px;padding-left:22px;display:flex;flex-directi
 .modal .box{background:var(--surface);border-radius:18px;padding:20px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:14px}
 .modal h3{margin:0;font-size:19px} .modal p{margin:0;font-size:15px;line-height:1.45;color:var(--muted)}
 .modal{overflow-y:auto}
+select{width:100%;min-height:48px;padding:0 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;font-size:17px}
+.seg.two{grid-template-columns:repeat(2,1fr)}
+.dirs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.dirs8{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.dirs8 button{min-height:44px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);font-weight:700;font-size:15px}
 .modal .box{max-height:100%;overflow-y:auto}
 .pts button[data-edit]{color:var(--ink)}
 #targetBar .link{padding:0 0 0 8px;font-size:14px}
@@ -226,6 +231,7 @@ details ul,details ol{margin:0 0 8px;padding-left:22px;display:flex;flex-directi
     <div class="row between"><h2>Puntos guardados</h2><span class="small muted" id="ptCount"></span></div>
     <ol class="pts" id="ptList"></ol>
     <div id="ptEmpty" class="empty"></div>
+    <button class="btn ghost" id="addMeasBtn" type="button">Agregar punto por medida</button>
     <div class="row between">
       <button class="link" id="undoBtn" type="button">Quitar último punto</button>
       <button class="link danger" id="clearBtn" type="button">Borrar todo</button>
@@ -303,11 +309,39 @@ details ul,details ol{margin:0 0 8px;padding-left:22px;display:flex;flex-directi
     <p id="eInfo"></p>
     <button class="btn sm" id="eRemeasure" type="button">Volver a medir este punto</button>
     <p class="small" style="margin:0">Conserva el orden. Párate en esa esquina y mide otra vez.</p>
+    <label class="field" for="eMove">Mover este punto (distancia)
+      <input id="eMove" type="text" inputmode="decimal" autocomplete="off" placeholder="Ej. 2">
+    </label>
+    <div class="seg two" id="eUnit" role="group" aria-label="Unidad de medida"><button type="button" data-u="m" aria-pressed="true">Metros</button><button type="button" data-u="v" aria-pressed="false">Varas</button></div>
+    <div class="dirs">
+      <button class="btn ghost sm" type="button" data-mv="N">↑ Norte</button>
+      <button class="btn ghost sm" type="button" data-mv="S">↓ Sur</button>
+      <button class="btn ghost sm" type="button" data-mv="E">→ Este</button>
+      <button class="btn ghost sm" type="button" data-mv="O">← Oeste</button>
+    </div>
     <label class="field" for="eLat">Latitud<input id="eLat" type="text" inputmode="decimal" autocomplete="off"></label>
     <label class="field" for="eLon">Longitud<input id="eLon" type="text" inputmode="decimal" autocomplete="off"></label>
     <div class="alert hidden" id="eErr" role="alert"></div>
     <button class="btn ghost" id="eSave" type="button">Guardar coordenadas</button>
     <button class="btn ghost" id="eClose" type="button">Cerrar</button>
+  </div>
+</div>
+
+<div class="modal" id="addModal" role="dialog" aria-modal="true" aria-labelledby="aTitle">
+  <div class="box">
+    <h3 id="aTitle">Agregar punto por medida</h3>
+    <p>Mide con cinta o pasos desde un punto que ya tienes y escribe la distancia y la dirección. El punto nuevo se inserta después del que elijas.</p>
+    <label class="field" for="aFrom">Desde<select id="aFrom"></select></label>
+    <label class="field" for="aDist">Distancia<input id="aDist" type="text" inputmode="decimal" autocomplete="off" placeholder="Ej. 25"></label>
+    <div class="seg two" id="aUnit" role="group" aria-label="Unidad de medida"><button type="button" data-u="m" aria-pressed="true">Metros</button><button type="button" data-u="v" aria-pressed="false">Varas</button></div>
+    <div class="dirs8" id="aDirs" role="group" aria-label="Dirección">
+      <button type="button" data-az="0">N</button><button type="button" data-az="45">NE</button><button type="button" data-az="90">E</button><button type="button" data-az="135">SE</button>
+      <button type="button" data-az="180">S</button><button type="button" data-az="225">SO</button><button type="button" data-az="270">O</button><button type="button" data-az="315">NO</button>
+    </div>
+    <label class="field" for="aAz">Rumbo en grados (0° Norte, 90° Este)<input id="aAz" type="text" inputmode="decimal" autocomplete="off" placeholder="Ej. 90"></label>
+    <div class="alert hidden" id="aErr" role="alert"></div>
+    <button class="btn sm" id="aSave" type="button">Agregar punto</button>
+    <button class="btn ghost" id="aClose" type="button">Cerrar</button>
   </div>
 </div>
 
@@ -328,8 +362,7 @@ const Geo=(()=>{
   function area(xy){let s=0;const n=xy.length;for(let i=0;i<n;i++){const a=xy[i],b=xy[(i+1)%n];s+=a.x*b.y-b.x*a.y;}return Math.abs(s)/2;}
   function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
   function perimeter(xy,closed){let s=0;const n=xy.length;const last=closed?n:n-1;for(let i=0;i<last;i++)s+=dist(xy[i],xy[(i+1)%n]);return s;}
-  function haversine(a,b){const R=6371008.8,dLat=(b.lat-a.lat)*D2R,dLon=(b.lon-a.lon)*D2R;
-    const h=Math.sin(dLat/2)**2+Math.cos(a.lat*D2R)*Math.cos(b.lat*D2R)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+  function haversine(a,b){const m=mPerDeg((a.lat+b.lat)/2);return Math.hypot((b.lon-a.lon)*m.lon,(b.lat-a.lat)*m.lat);}
   function segInt(a,b,c,d){const o=(p,q,r)=>(q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x);
     return o(a,b,c)*o(a,b,d)<0&&o(c,d,a)*o(c,d,b)<0;}
   function selfIntersects(xy){const n=xy.length;if(n<4)return false;
@@ -369,7 +402,7 @@ const Geo=(()=>{
 'use strict';
 const $=id=>document.getElementById(id);
 const STORE='myarq.v1';
-const state={name:'',points:[],seconds:20,example:false};
+const state={name:'',points:[],seconds:20,example:false,unit:'m'};
 let watchId=null,tracking=false,cur=null,wake=null,capture=null,errMsg='',toastT=null,target=null,editIdx=null;
 
 /* ---------- Guardado local ---------- */
@@ -377,7 +410,7 @@ function load(){try{const s=JSON.parse(localStorage.getItem(STORE)||'null');if(s
   state.name=typeof s.name==='string'?s.name:'';
   state.points=Array.isArray(s.points)?s.points.filter(p=>isFinite(p.lat)&&isFinite(p.lon)):[];
   state.seconds=[10,20,30,60].includes(s.seconds)?s.seconds:20;
-  state.example=!!s.example;}}catch(e){}}
+  state.example=!!s.example;state.unit=s.unit==='v'?'v':'m';}}catch(e){}}
 function save(){try{localStorage.setItem(STORE,JSON.stringify(state));}catch(e){}}
 
 /* ---------- Utilidades ---------- */
@@ -701,7 +734,49 @@ $('eSave').onclick=()=>{
 };
 $('targetCancel').onclick=()=>{target=null;renderAll();};
 
-load();$('nameInput').value=state.name;renderAll();
+/* ---------- Mover y agregar por medida ---------- */
+const dirName={N:'Norte',S:'Sur',E:'Este',O:'Oeste'};
+const parseNum=v=>parseFloat(String(v).trim().replace(',','.'));
+const toMeters=v=>state.unit==='v'?v*Geo.VARA:v;
+const fmtDist=m=>state.unit==='v'?nf(m/Geo.VARA,1)+' varas':nf(m,1)+' m';
+function shift(p,dN,dE){const m=Geo.mPerDeg(p.lat);return{lat:p.lat+dN/m.lat,lon:p.lon+dE/m.lon};}
+function showErr(id,t){const e=$(id);e.textContent=t;e.classList.remove('hidden');}
+function syncUnit(){document.querySelectorAll('#eUnit button,#aUnit button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.u===state.unit)));}
+['eUnit','aUnit'].forEach(id=>{$(id).onclick=e=>{const b=e.target.closest('button');if(!b)return;state.unit=b.dataset.u;save();syncUnit();};});
+document.querySelectorAll('[data-mv]').forEach(b=>{b.onclick=()=>{
+  const p=state.points[editIdx];if(!p)return;
+  const v=parseNum($('eMove').value);
+  if(!(v>0&&v<=5000)){showErr('eErr','Escribe cuánto quieres mover, mayor que 0. Ejemplo: 2');return;}
+  const d=toMeters(v),k=b.dataset.mv;
+  const q=shift(p,k==='N'?d:k==='S'?-d:0,k==='E'?d:k==='O'?-d:0);
+  p.lat=q.lat;p.lon=q.lon;p.manual=true;p.t=new Date().toISOString();
+  save();$('eLat').value=p.lat.toFixed(7);$('eLon').value=p.lon.toFixed(7);
+  $('eInfo').textContent='Coordenadas escritas a mano.';$('eErr').classList.add('hidden');
+  renderAll();toast(`P${editIdx+1} movido ${fmtDist(d)} al ${dirName[k]}.`);
+};});
+function openAdd(){
+  if(state.example){toast('Son datos de ejemplo. Guarda tus propios puntos primero.');return;}
+  if(!state.points.length){toast('Primero guarda un punto con el GPS. Desde ahí puedes agregar los demás por medida.',4500);return;}
+  const sel=$('aFrom');sel.innerHTML=state.points.map((p,i)=>`<option value="${i}">P${i+1}</option>`).join('');
+  sel.value=String(state.points.length-1);
+  $('aDist').value='';$('aAz').value='';$('aErr').classList.add('hidden');syncUnit();$('addModal').classList.add('show');
+}
+$('addMeasBtn').onclick=openAdd;
+$('aClose').onclick=()=>$('addModal').classList.remove('show');
+$('aDirs').onclick=e=>{const b=e.target.closest('[data-az]');if(b)$('aAz').value=b.dataset.az;};
+$('aSave').onclick=()=>{
+  const i=+$('aFrom').value,from=state.points[i];if(!from)return;
+  const v=parseNum($('aDist').value),az=parseNum($('aAz').value);
+  if(!(v>0&&v<=5000)){showErr('aErr','Escribe la distancia, mayor que 0. Ejemplo: 25');return;}
+  if(!isFinite(az)){showErr('aErr','Toca una dirección o escribe el rumbo en grados. Ejemplo: 90 para el Este.');return;}
+  const d=toMeters(v),r=az*Math.PI/180,q=shift(from,d*Math.cos(r),d*Math.sin(r));
+  state.points.splice(i+1,0,{lat:q.lat,lon:q.lon,acc:0,manual:true,t:new Date().toISOString()});
+  if(target!==null&&i+1<=target)target++;
+  save();$('addModal').classList.remove('show');renderAll();
+  toast(`P${i+2} agregado a ${fmtDist(d)} de P${i+1}, rumbo ${Math.round(((az%360)+360)%360)}°.`);
+};
+
+load();$('nameInput').value=state.name;syncUnit();renderAll();
 })();
 </script>
 </body>
